@@ -1,0 +1,1 @@
+Welcome to Omnes (<u>O</u>ne <u>M</u>ore <u>NES</u>), a (fairly) cycle accurate NES emulator written in C, targetting x86 and wasm! Supports mapper 0, 1, and 3 games. Mapper 4 (SMB2/3 support) to come.

@@ -1,6 +1,6 @@
 #include <stddef.h>
 
-extern unsigned char __heap_base;
+extern const unsigned char __heap_base;
 extern void* js_grow(void*);
 
 //void* __cdecl calloc(size_t, size_t);

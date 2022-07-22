@@ -2,45 +2,63 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-__attribute__((aligned(8))) uint8_t __data[1048576]; // 10 MB
-uint8_t* __head = __data + 1048576;
-
-void* __cdecl malloc(size_t size) {
-	__head -= size;
-	return __head;
-}
-
-/*struct Node {
-	Node* next;
+struct Node {
+	struct Node* next;
 	size_t size;
-}
+	uint8_t data[0];
+};
 
-Node start = Node { 0, &__heap_base - &start };
-size_t __heap_end = &__heap_base;
+void* get_heap_base() {
+	return (void*)&__heap_base;
+}
 
 size_t align8(size_t v) {
-	return v / 8 + 8;
+	return v + (8 - v & 0b111);
 }
 
-void* __cdecl malloc(size_t size) {
-	// calculate the size of the block
-	size_t block_size = align8(sizeof(Node) + size);
+__cdecl void* malloc(size_t size) {
+    if (size == 0) return NULL;
+    
+    // round size up to nearest 64 bit
+    size = align8(size);
 
-	// find open block
-	Node* node = Node;
-	while (node->next != 0) {
-		if (node + size + block_size < node->next) break;
-		node = node->next;
-	}
+    // find space
+    struct Node* node = get_heap_base();
+    while (1) {
+        size_t node_size = sizeof(struct Node) + node->size;
+        
+        // if next node is null, insert there
+        if (node->next == NULL) {
+            // TODO: check if space exists
+            
+            node->next = node + node_size;
+            node->next->next = NULL;
+            node->next->size = size;
+            
+            return &node->next->data;
+        }
+        
+        // if space exists between current and next node
+        if (node->next - node - node_size >= size) {
+            struct Node* old_next = node->next;
+            
+            node->next = node + node_size;
+            node->next->next = old_next;
+            node->next->size = size;
+            
+            return &node->next->data;
+        }
+        
+        node = node->next;
+    }
+}
 
-	if (node->next)
+void print_node_chain() {
+	return;
 
-
-	uint32_t true_size = sizeof(node) + (size)
-	if (__heap_end - &__heap_base < size) {
-		__heap_end = grow(size);
-	}
-
-	grow(5);
-	return 0;
-}*/
+    struct Node* node = get_heap_base();
+    do {
+        printf("%lX -> struct Node { struct Node* next = %p; size_t size = %li; uint8_t data[%li] = .. }\n", (void*)node - get_heap_base(), node->next, node->size, node->size);
+        node = node->next;
+    } while(node != NULL);
+}

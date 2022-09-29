@@ -1,27 +1,10 @@
 #include "nes.h"
+#include "cpu.h"
+#include "ppu.h"
 #include <string.h>
-
-/*
-b = *dpl = 00
-dpl = 34
-
-dpl = 00 + 00 = 00
-dph = *dpl = 04
-
-b = *(0400)
-*/
 
 uint16_t make_u16(uint8_t hi, uint8_t lo) {
     return ((uint16_t)hi << 8) | (uint16_t)lo;
-}
-
-void set_flag(struct Nes* nes, uint8_t n, uint8_t val) {
-    nes->status &= ~(1 << n); // clear nth bit
-    nes->status |= val << n; // set nth bit to val
-}
-
-uint8_t get_flag(struct Nes* nes, uint8_t n) {
-    return (nes->status >> n) & 0x01;
 }
 
 void init_nes(struct Nes* nes, struct Cartridge* cartridge) {
@@ -88,3 +71,15 @@ void reset(struct Nes* nes) {
     nes->reset = 1;
 }
 
+uint8_t step_nes(struct Nes* nes, uint8_t* nes_pixels) {
+    // Step CPU if there is no OAM delay
+    if (nes->oam_delay == 0) step_cpu(nes);
+    else nes->oam_delay -= 1;
+
+    uint8_t vblank = 0;
+    step_ppu(nes, nes_pixels, &vblank);
+    step_ppu(nes, nes_pixels, &vblank);
+    step_ppu(nes, nes_pixels, &vblank);
+
+    return vblank;
+}

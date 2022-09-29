@@ -1,8 +1,19 @@
 #include "nes.h"
+#include "cpu.h"
+#include "ppu.h"
 #include "error.h"
 #include <assert.h>
 
 #include <stdio.h>
+
+void set_flag(struct Nes* nes, uint8_t n, uint8_t val) {
+    nes->status &= ~(1 << n); // clear nth bit
+    nes->status |= val << n; // set nth bit to val
+}
+
+uint8_t get_flag(struct Nes* nes, uint8_t n) {
+    return (nes->status >> n) & 0x01;
+}
 
 #define R_IMM(op) op, _0_0_0_0_0_0_end
 #define R_ZP(op) _B0_42_0_0_10_0 , op, _0_0_0_0_0_0_end
@@ -965,12 +976,12 @@ uint8_t opcode_sizes[] = {
 void _0_0_0_0_0_0_end(struct Nes* nes) { 
     nes->dpl = nes->b = cpu_bus_read(nes, nes->pc); 
 
-    uint16_t s = nes->b;
+    /*uint16_t s = nes->b;
     if (opcode_sizes[nes->ir] == 2) {
         s |= cpu_bus_read(nes, nes->pc + 1) << 8;
     }
     char* c = opcode_names[nes->ir];
-    //nlog(c, s);
+    nlog(c, s);*/
 
     // if an interrupt is raised, force next instruction to BRK
     nes->irq = nes->cartridge->irq;

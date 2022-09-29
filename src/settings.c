@@ -17,7 +17,10 @@ int settings_load_from_file(struct Settings* settings, const char* filename) {
 	if (fp == NULL) return error(IO_ERROR, "Could not open \"%.32s\"", filename);
 
 	// read
-	fread(settings, 1, sizeof(struct Settings), fp);
+	int count = fread(settings, 1, sizeof(struct Settings), fp);
+	if (count != sizeof(struct Settings)) {
+		return error(IO_ERROR, "Read error");
+	}
 
 	return 0;
 }

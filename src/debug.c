@@ -1,4 +1,5 @@
 #include "debug.h"
+#include "ppu.h"
 #include "error.h"
 #include <assert.h>
 

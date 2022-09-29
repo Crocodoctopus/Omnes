@@ -15,7 +15,7 @@ struct Cartridge {
 
 // Cartridge initialization/free functions.
 int load_cartridge_from_file(char*, struct Cartridge**);
-int load_cartridge_from_data(uint8_t*, uint8_t*, struct Cartridge**);
+int load_cartridge_from_data(uint8_t[16], uint8_t*, struct Cartridge**);
 void free_cartridge(struct Cartridge*);
 
 // Cartridge IO. prg_read and prg_write are used by the CPU, chr_read is used by the PPU.

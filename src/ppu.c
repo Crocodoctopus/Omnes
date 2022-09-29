@@ -1,4 +1,5 @@
 #include "nes.h"
+#include "ppu.h"
 #include "error.h"
 
 #include <string.h>

@@ -49,13 +49,7 @@ WASM_EXPORT int update_nes(struct Nes* nes, uint8_t input1, uint8_t* screen_pixe
 
     // complete one frame
     for (int i = 0; i < 100000; i++) {
-        if (nes->oam_delay == 0) step_cpu(nes);
-        else nes->oam_delay -= 1;
-        uint8_t vblank = 0;
-        step_ppu(nes, nes_pixels, &vblank);
-        step_ppu(nes, nes_pixels, &vblank);
-        step_ppu(nes, nes_pixels, &vblank);
-
+        uint8_t vblank = step_nes(&nes, nes_pixels);
         if (vblank) break;
     }
 

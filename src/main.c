@@ -69,37 +69,19 @@ int main(int argc, char** argv) {
     // Declare space for PPU output, in PPU colors.
     uint8_t ppu_output[SCREEN_WIDTH * SCREEN_HEIGHT];
 
-    /*int cy = 7;
-    nes.pc = 0xC002;
-    nes.status = 0x24;
-    nes.reset = 0;
-    nes.sp -= 3;
-    nes.ir = 0x4C;
-    nes.b = nes.dpl = 0xF5;
-    nes.instr_ptr = get_micro(0x4C);*/
-
     int debug_scanline = 240;
     int debug_dot = 0;
     int debug_cycle = debug_scanline * 340 + debug_dot;
 
     // The main game loop. Runs at 60 Hz.
-    int vblanks = 0;
-    uint8_t next = 0;
     while (1) {
         // For sleep timing.
         int start = SDL_GetTicks();
 
-        //printf("%04X  %02X - A:%02X X:%02X Y:%02X P:%02X SP:%02X cyc: %i\n", nes->pc - 1, nes->ir, nes->acc, nes->x, nes->y, nes->status, nes->sp);
-        //fflush(stdout);
+        // Step the NES 1 cycle.
+        uint8_t vblank = step_nes(&nes, ppu_output);
 
-        // In total, this takes about 513-514 clock cycles 
-        uint8_t vblank = 0;
-        if (nes.oam_delay == 0) step_cpu(&nes);
-        else nes.oam_delay -= 1;
-        step_ppu(&nes, ppu_output, &vblank);
-        step_ppu(&nes, ppu_output, &vblank);
-        step_ppu(&nes, ppu_output, &vblank);
-
+        // Output debug info on the debug cycle.
         if (debug_cycle == nes.cycle) {
             // Render nametable.
             uint8_t nametable_output[SCREEN_WIDTH * SCREEN_HEIGHT * 2 * 2];
@@ -124,7 +106,7 @@ int main(int argc, char** argv) {
             SDL_UpdateWindowSurface(pattern_table_window);
         }
 
-        // Once per frame logic.
+        // Render screen info on vblank cycle.
         if (vblank) {
             // Poll window events.
             int keys = 0;

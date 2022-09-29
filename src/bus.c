@@ -1,4 +1,6 @@
 #include "nes.h"
+#include "cpu.h"
+#include "ppu.h"
 #include "error.h"
 #include <assert.h>
 

@@ -6,6 +6,8 @@
 #include "mapper4.h"
 #include "error.h"
 
+#include <stdio.h>
+
 int init_mapper4(struct Mapper4* mapper4, uint8_t* prg_rom, size_t prg_rom_size, uint8_t* chr_rom, size_t chr_rom_size, size_t sram) {
     if (prg_rom == NULL) return error(INVALID_INPUT, "Null PRG ROM");
     if (chr_rom == NULL) return error(INVALID_INPUT, "Null CHR ROM");
@@ -32,7 +34,7 @@ int init_mapper4(struct Mapper4* mapper4, uint8_t* prg_rom, size_t prg_rom_size,
     memset(mapper4->regs, 0, 8);
 
     //
-    mapper4->low = 0;
+    mapper4->last_a12 = 0;
     mapper4->irq_counter = 0;   
 
     //
@@ -91,21 +93,26 @@ void mapper4_prg_write(struct Mapper4* mapper4, uint16_t addr, uint8_t data) {
 
         // C000
         case 0xC000: 
+        nlog("LATCH = %i", data);
         mapper4->irq_latch = data;
         break;
 
         // C001
         case 0xC001: 
+        nlog("IRQ RELOAD $%04X", addr);
         mapper4->irq_reload = 1;
         break;
 
         // E000
         case 0xE000: 
+        nlog("IRQ DISABLE $%04X", addr);
         mapper4->irq_enable = 0;
+        mapper4->base.irq = 0;
         break;
 
         // E001
         case 0xE001: 
+        nlog("IRQ ENABLE $%04X", addr);
         mapper4->irq_enable = 1;
         break;
     }
@@ -152,31 +159,50 @@ void mapper4_prg_write(struct Mapper4* mapper4, uint16_t addr, uint8_t data) {
 } 
 
 uint8_t mapper4_chr_read(struct Mapper4* mapper4, uint16_t addr) {
-    /*uint8_t last_a12 = mapper4->low;
-    uint8_t current_a12 = (addr & 0b1000000000000) > 0;
-    mapper4->low = current_a12;
-    if (last_a12 == 0 && current_a12 == 1) {
-        if (mapper4->irq_reload) {
+    uint8_t current_a12 = (addr & 0b1 << 12) > 0;
+    if  (mapper4->last_a12 == 0 && current_a12 == 1) {
+        // IRQ is clocked...
+        nlog("IRQ clocked q=%i:  %4x", mapper4->irq_counter, addr);
+        
+        if (mapper4->irq_reload || mapper4->irq_counter == 0) {
             mapper4->irq_reload = 0;
             mapper4->irq_counter = mapper4->irq_latch;
         } else {
             mapper4->irq_counter -= 1;
         }
-
-        if (mapper4->irq_counter == 0) {
-            mapper4->irq_counter = mapper4->irq_latch;
-            if (mapper4->irq_enable) {
-                mapper4->base.irq = 1;
-                nlog("ASDF");
-            }
+        
+        if (mapper4->irq_counter == 0 && mapper4->irq_enable) {
+            mapper4->base.irq = 1;
+            nlog("IRQ");
         }
-    }*/
+    }
+    mapper4->last_a12 = current_a12;
+
     uint8_t bank = mapper4->chr_banks[addr >> 10 & 0b111];
     assert(bank <= mapper4->last_chr_bank);
     return mapper4->chr_rom[0x400 * bank | addr & 0x3FF];
 }
 
 void mapper4_chr_write(struct Mapper4* mapper4, uint16_t addr, uint8_t data) {
+    uint8_t current_a12 = (addr & 0b1 << 12) > 0;
+    if  (mapper4->last_a12 == 0 && current_a12 == 1) {
+        // IRQ is clocked...
+        //printf("IRQ clocked q=%i:  %4x\n", mapper4->irq_counter, addr);
+        
+        if (mapper4->irq_reload || mapper4->irq_counter == 0) {
+            mapper4->irq_reload = 0;
+            mapper4->irq_counter = mapper4->irq_latch;
+        } else {
+            mapper4->irq_counter -= 1;
+        }
+        
+        if (mapper4->irq_counter == 0 && mapper4->irq_enable) {
+            mapper4->base.irq = 1;
+            nlog("IRQ");
+        }
+    }
+    mapper4->last_a12 = current_a12;
+
     uint8_t bank = mapper4->chr_banks[addr >> 10 & 0b111];
     assert(bank <= mapper4->last_chr_bank);
     mapper4->chr_rom[0x400 * bank | addr & 0x3FF] = data;

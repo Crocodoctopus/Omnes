@@ -19,7 +19,7 @@ struct Mapper4 {
     uint8_t regs[8];
 
     //
-    uint8_t low;
+    uint8_t last_a12;
     uint8_t irq_counter;
     
     //

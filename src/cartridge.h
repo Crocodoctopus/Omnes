@@ -9,7 +9,7 @@
 struct Cartridge {
     uint8_t mapper;
     uint8_t mirroring : 1; // bit 0 == mirroring; 0 = horizontal, 1 = vertical
-    uint8_t irq : 1;
+    uint8_t irq;
     uint8_t data[0];
 };
 

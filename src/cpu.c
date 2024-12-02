@@ -984,12 +984,12 @@ void _0_0_0_0_0_0_end(struct Nes* nes) {
     nlog(c, s);*/
 
     // if an interrupt is raised, force next instruction to BRK
-    nes->irq = nes->cartridge->irq;
-    nes->cartridge->irq = 0;
+    nes->irq = 0;
+    nes->irq |= nes->cartridge->irq;
     if (nes->reset || nes->nmi || (nes->irq && !get_flag(nes, STATUS_FLAG_INTERRUPT))) {
         // priority: reset > nmi > irq
-        if (nes->reset) nes->nmi = nes->irq = 0;
         if (nes->nmi) nes->irq = 0;
+        if (nes->reset) nes->nmi = 0;
 
         nes->pc -= 2; // undo prev fetch opcode inc
         nes->ir = 0x00; // force brk

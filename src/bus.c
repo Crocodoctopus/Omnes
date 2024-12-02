@@ -145,6 +145,10 @@ void cpu_bus_write(struct Nes* nes, uint16_t addr, uint8_t byte) {
                     nes->ppuscroll &= 0b1111111100000000;
                     nes->ppuscroll |= byte;
                     nes->ppuaddr = nes->ppuscroll;
+
+                    // ?
+                    if (nes->ppuscroll < 0x2000)
+                        cartridge_chr_write(nes->cartridge, nes->ppuaddr & 0x3FFF, byte);                   
                 }
                 nes->ppulatch = !nes->ppulatch;
                 return;

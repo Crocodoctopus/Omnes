@@ -32,7 +32,7 @@ uint8_t cpu_bus_read(struct Nes* nes, uint16_t addr) {
                 if ((nes->ppuaddr & 0x3FFF) < 0x3F00) {
                     uint8_t out = nes->read_buffer;
                     nes->read_buffer = ppu_bus_read(nes, nes->ppuaddr);
-                    nes->ppuaddr += (nes->ppuctrl & 0b0100) > 0 ? 32 : 1;
+                    nes->ppuaddr += nes->ppuctrl.I ? 32 : 1;
 
                     // A hack to clock the MMC3
                     //if (nes->cartridge->mapper == 4)
@@ -41,7 +41,7 @@ uint8_t cpu_bus_read(struct Nes* nes, uint16_t addr) {
                     return out;
                 } else {
                     uint8_t out = ppu_bus_read(nes, nes->ppuaddr);
-                    nes->ppuaddr += (nes->ppuctrl & 0b0100) > 0 ? 32 : 1;
+                    nes->ppuaddr += nes->ppuctrl.I ? 32 : 1;
 
                     // A hack to clock the MMC3
                     //if (nes->cartridge->mapper == 4)
@@ -108,7 +108,7 @@ void cpu_bus_write(struct Nes* nes, uint16_t addr, uint8_t byte) {
                 //if (nes->ppuctrl < 0x80 && byte >= 0x80 && nes->ppustatus >= 0x80) {
                 //    nes->nmi = 1;
                 //}
-                nes->ppuctrl = byte;
+                nes->ppuctrl.raw = byte;
                 // micro
                 nes->ppuscroll &= 0b111001111111111;
                 nes->ppuscroll |= (byte & 0b11) << 10;
@@ -174,7 +174,7 @@ void cpu_bus_write(struct Nes* nes, uint16_t addr, uint8_t byte) {
             // ppudata
             case 0x2007: {
                 ppu_bus_write(nes, nes->ppuaddr, byte); 
-                nes->ppuaddr += ((nes->ppuctrl & 0b0100) > 0) * 31 + 1;
+                nes->ppuaddr += nes->ppuctrl.I ? 32 : 1;
 
                 // A hack to clock the MMC3
                 //if (nes->cartridge->mapper == 4)

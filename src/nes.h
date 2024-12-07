@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include "cartridge.h"
 #include "defines.h"
+#include "ppu.h"
 
 #define STATUS_FLAG_CARRY       0
 #define STATUS_FLAG_ZERO        1
@@ -47,27 +48,28 @@ struct Nes {
     uint8_t oam[0x100];
     uint8_t palette[0x20];
     uint32_t cycle;
-    uint8_t ppuctrl; // ppu register @ 0x2000
-    uint8_t ppumask; // ppu register @ 0x2001
-    uint8_t ppustatus; // ppu register @ 0x2002
-    uint8_t oamaddr; // ppu register @ 0x2003
-    uint16_t ppuscroll; // ppu register @ 0x2005
-    uint16_t ppuaddr; // ppu register @ 0x2006
-    uint8_t read_buffer; // used by ppuaddr
+    // Mapped PPU registers
+    union PpuCtrl ppuctrl; // $2000
+    uint8_t ppumask; // $2001
+    uint8_t ppustatus; // $2002
+    uint8_t oamaddr; // $2003
+    uint16_t ppuscroll; // $2005
+    uint16_t ppuaddr; // $2006
+    // Interal PPU registers
+    uint8_t read_buffer;
     uint8_t set_szh;
-    // ppu registers
-    uint8_t fine_x; // fine x
-    uint8_t ppulatch; // latch
+    uint8_t fine_x;
+    uint8_t ppulatch;
     uint8_t nt_latch;
     uint8_t at_latch;
     uint8_t pt_lo_latch;
     uint8_t pt_hi_latch;
-    // ppu background
+    // PPU background
     uint16_t bg_lo_at_shifter;
     uint16_t bg_hi_at_shifter;
     uint16_t bg_lo_pt_shifter;
     uint16_t bg_hi_pt_shifter;
-    // ppu sprite
+    // PPU foreground
     uint8_t secondary_oam[0x20];
     uint8_t spr_lo_pt_shifters[8]; // sprites pattern low bits
     uint8_t spr_hi_pt_shifters[8]; // sprite pattern high bits

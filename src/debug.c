@@ -1,4 +1,5 @@
 #include "debug.h"
+#include "nes.h"
 #include "ppu.h"
 #include "error.h"
 #include <assert.h>
@@ -26,6 +27,9 @@ void draw_ppu_nametables(struct Nes* nes, uint8_t pixels[4*256*240]) {
     for (int nametable = 0; nametable < 4; nametable += 1) {
         uint16_t nametable_base = 0x2000 | (0x400 * nametable);
         uint16_t attribute_base = nametable_base | 0x3C0;
+        uint16_t pattern_table_base = nes->ppuctrl.B
+            ? 0x1000
+            : 0x0000;
 
         // loop through each 8x8 tile (32 by 30 iterations)
         for (uint8_t tile8_y = 0; tile8_y < NAMETABLE_HEIGHT; tile8_y++) {
@@ -38,9 +42,6 @@ void draw_ppu_nametables(struct Nes* nes, uint8_t pixels[4*256*240]) {
                 uint8_t nametable_data = ppu_bus_read(nes, nametable_base + nametable_index);
                 uint8_t attribute_data = ppu_bus_read(nes, attribute_base + attribute_index);
 
-                // form patterntable base
-                uint16_t pattern_table_base = nametable_data << 4 | nes->ppuctrl << 8 & 0b1000000000000; 
-
                 // form palette id
                 uint8_t x_sub_tile = (tile8_x/2) % 2;
                 uint8_t y_sub_tile = (tile8_y/2) % 2;
@@ -49,8 +50,8 @@ void draw_ppu_nametables(struct Nes* nes, uint8_t pixels[4*256*240]) {
                 // loop through each pixel (8 by 8 iterations)
                 for (uint8_t bit_plane = 0; bit_plane < TILE_SIZE; bit_plane++) {
                     // load the bit plane
-                    uint8_t low_bits = ppu_bus_read(nes, pattern_table_base | bit_plane); // low bits for 8 pixels
-                    uint8_t high_bits = ppu_bus_read(nes, pattern_table_base | TILE_SIZE | bit_plane); // high bits for 8 pixels
+                    uint8_t low_bits = ppu_bus_read(nes, pattern_table_base | nametable_data << 4 | bit_plane); // low bits for 8 pixels
+                    uint8_t high_bits = ppu_bus_read(nes, pattern_table_base | nametable_data << 4 | TILE_SIZE | bit_plane); // high bits for 8 pixels
 
                     // for each pixel in plane
                     for (uint8_t pixel_index = 0; pixel_index < TILE_SIZE; pixel_index++) {
@@ -187,16 +188,17 @@ void draw_oam_sprites(struct Nes* nes, uint8_t* pixels) {
         uint8_t flip_h = (byte2 & 0x40) > 0;
 
         // Calculate pattern table base.
-        uint8_t mode = (nes->ppuctrl & 0b00100000) > 0;
-        uint16_t pattern_table_index = mode 
+        uint16_t pattern_table_index = nes->ppuctrl.H 
             ? (byte1 & 0xFE) << 4 // 8x16 mode
             : byte1 << 4; // 8x8 mode
-        uint16_t pattern_table_page = mode 
+        uint16_t pattern_table_page = nes->ppuctrl.H
             ? (byte1 & 0x01) << 12 // 8x16 mode
-            : (nes->ppuctrl & 0b1000) << 9; // 8x8 mode
+            : nes->ppuctrl.S 
+                ? 0x1000
+                : 0x1000l; // 8x8 mode
         uint16_t pattern_table_base = pattern_table_page | pattern_table_index;
 
-        for (uint8_t spr = mode; spr != 255; spr--) {
+        for (uint8_t spr = nes->ppuctrl.H; spr != 255; spr--) {
             for (uint8_t bit_plane = 0; bit_plane < sprite_size; bit_plane++) {
                 //
                 uint8_t true_bit_plane = flip_v ? 7 - bit_plane : bit_plane;

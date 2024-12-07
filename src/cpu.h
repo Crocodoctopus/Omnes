@@ -1,3 +1,7 @@
+#pragma once
+
+struct Nes;
+
 // Steps the CPU one cycle.
 void step_cpu(struct Nes*);
 

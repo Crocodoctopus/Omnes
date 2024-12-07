@@ -16,7 +16,7 @@ uint8_t reverse_u8(uint8_t v) {
 void ppu_evaluate_sprites(struct Nes* nes, uint16_t scanline) {
     uint8_t i1 = 0; // primary oam index
     uint8_t i2 = 0; // secondary oam index
-    uint8_t offset = (nes->ppuctrl & 0b00100000) > 0 ? 16 : 8;
+    uint8_t offset = nes->ppuctrl.H ? 16 : 8;
     nes->spr_zero = 0xFF;
     do {
         //
@@ -38,10 +38,12 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
     nes->cycle += 1;
 
     // Extract a few useful flags (https://www.nesdev.org/wiki/PPU_registers)
+    /*
     uint8_t ppuctrl_V = (nes->ppuctrl & 0b10000000) > 0; // enable NMI
     uint8_t ppuctrl_H = (nes->ppuctrl & 0b00100000) > 0; // sprite height: 0 = 8x8; 1 = 8x16
     uint8_t ppuctrl_B = (nes->ppuctrl & 0b00010000) > 0; // tile pattern table base: 0 = $0000; 1 = $1000
     uint8_t ppuctrl_S = (nes->ppuctrl & 0b00001000) > 0; // sprite pattern table base: 0 = $0000; 1 = $1000
+    */
     uint8_t ppumask_s = (nes->ppumask & 0b00010000) > 0; // sprite enabled
     uint8_t ppumask_b = (nes->ppumask & 0b00001000) > 0; // background enabled
     uint8_t ppumask_M = (nes->ppumask & 0b00000100) > 0; // show sprites in leftmost 8 pixels
@@ -57,7 +59,7 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
     //  Vblank begins on SL 241, D 1
     if (scanline == 241 && dot == 1) {
         *vblank = 1;
-        nes->nmi = ppuctrl_V;
+        nes->nmi = nes->ppuctrl.V;
         nes->ppustatus |= 0x80; // set vblank flag
         return;
     }
@@ -118,7 +120,7 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
                 // Shifter load operations
                 uint16_t nametable_base = 0x2000 | (nametable_select * 0x400);
                 uint16_t attribute_base = nametable_base | 0x3C0;
-                uint16_t pattern_base = ppuctrl_B ? 0x1000 : 0x0000;
+                uint16_t pattern_base = nes->ppuctrl.B ? 0x1000 : 0x0000;
         
                 // Behind the scenes, the PPU is fetching data to move into the shift registers
                 switch (dot & 0b111) {
@@ -196,13 +198,18 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
                 uint8_t* s_oam = nes->secondary_oam + 4 * sprite_number;
     
                 // The PPU still makes these calls, even though sprites don't use them
-                uint8_t ppuctrl_NN = (nes->ppuaddr >> 10) & 0b11;
-                uint16_t nametable_base = 0x2000 | (ppuctrl_NN * 0x400);
+                uint16_t nametable_base;
+                switch (nes->ppuctrl.NN) {
+                    case 0: nametable_base = 0x2000; break;
+                    case 1: nametable_base = 0x2400; break;
+                    case 2: nametable_base = 0x2800; break;
+                    case 3: nametable_base = 0x2C00; break;
+                }
     
                 // Calculate pattern table bank
-                uint16_t pattern_base = ppuctrl_H 
+                uint16_t pattern_base = nes->ppuctrl.H 
                     ? 0x1000 * (s_oam[1] & 0b1)
-                    : 0x1000 * ppuctrl_S; 
+                    : 0x1000 * nes->ppuctrl.S; 
     
                 switch (dot & 0b111) {
                     // Garbage nametable read
@@ -223,7 +230,7 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
                         uint8_t y = scanline - s_oam[0];
     
                         uint8_t pattern_index = s_oam[1];
-                        if (ppuctrl_H == 1) { 
+                        if (nes->ppuctrl.H) { 
                             pattern_index &= 0xFE;
                             pattern_index |= (y >> 3 ^ flip_v) > 0;
                         }
@@ -243,7 +250,7 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
                         uint8_t y = scanline - s_oam[0];   
     
                         uint8_t pattern_index = s_oam[1];
-                        if (ppuctrl_H == 1) { 
+                        if (nes->ppuctrl.H) { 
                             pattern_index &= 0xFE;
                             pattern_index |= (y >> 3 ^ flip_v) > 0;
                         }

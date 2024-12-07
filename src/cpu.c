@@ -338,18 +338,9 @@ void _A0_8_CE_55_0_0(struct Nes* nes) {
 
 // A := A SBC B; SETF(NZCV); IR := *PC; PC += 1; END.D 
 void _A0_8_3E_55_0_0(struct Nes* nes) {
-    uint8_t val = ~nes->b;
-    uint8_t old_acc = nes->acc;
-    uint16_t result = nes->acc + val + get_flag(nes, STATUS_FLAG_CARRY);
-    nes->acc = result;
-    uint8_t overflow = ((old_acc ^ nes->acc) & (val ^ nes->acc) & 0x80) > 0;
-    set_flag(nes, STATUS_FLAG_NEGATIVE, nes->acc >= 0x80);
-    set_flag(nes, STATUS_FLAG_OVERFLOW, overflow);
-    set_flag(nes, STATUS_FLAG_CARRY, result > 0xFF);
-    set_flag(nes, STATUS_FLAG_ZERO, nes->acc == 0);
-    // end
-    nes->ir = cpu_bus_read(nes, nes->pc);
-    nes->pc += 1;
+    nes->b ^= 0xFF;
+    _A0_8_CE_55_0_0(nes);
+    nes->b ^= 0xFF;
 }
 
 // X := X + 1; SETF(NZ); IR := *PC; PC += 1; END 

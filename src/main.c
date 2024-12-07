@@ -150,7 +150,8 @@ int main(int argc, char** argv) {
             // Sleep for (16ms - time_taken).
             int end = SDL_GetTicks();
             //nlog("%i", end - start);
-            SDL_Delay(16 - (end - start));
+            uint8_t wait = end - start;
+            SDL_Delay(wait < 16 ? 16 - end + start : wait);
         };
     }
 

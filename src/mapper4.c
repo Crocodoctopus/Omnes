@@ -59,7 +59,8 @@ uint8_t mapper4_prg_read(struct Mapper4* mapper4, uint16_t addr) {
     }
 
     // Range [0x8000, 0xFFFF]: PRG rom space.
-    uint8_t bank = mapper4->prg_banks[addr >> 13 & 0b11];
+    //uint8_t bank = mapper4->prg_banks[addr >> 13 & 0b11];
+    uint8_t bank = mapper4->prg_banks[addr / 0x2000 & 0b11];
     assert(bank <= mapper4->last_prg_bank);
     return mapper4->prg_rom[0x2000 * bank | addr & 0x1FFF];
 }
@@ -73,44 +74,47 @@ void mapper4_prg_write(struct Mapper4* mapper4, uint16_t addr, uint8_t data) {
     }
 
     switch (addr & 0b1110000000000001) {
-        // 8000
+        // bank select
         case 0x8000: 
+        //nlog("BANK SELECT = %02X", data);
         mapper4->bank_select = data;
         break;
 
-        // Bank data
+        // bank data
         case 0x8001: 
-        mapper4->regs[mapper4->bank_select & 0b111] = data;
+        //nlog("BANK DATA = %i", data);
+        mapper4->regs[mapper4->bank_select & 0b0111] = data;
         break;
 
-        // A000
+        // mirroring
         case 0xA000: 
-        mapper4->base.mirroring = data & 0b1;
+        nlog("MIRROR = %i", data);
+        mapper4->base.mirroring = !data;
         break;
 
-        // A001
+        // sram protection
         case 0xA001: break;
 
-        // C000
+        // irq latch
         case 0xC000: 
         nlog("LATCH = %i", data);
         mapper4->irq_latch = data;
         break;
 
-        // C001
+        // irq reload
         case 0xC001: 
         nlog("IRQ RELOAD $%04X", addr);
         mapper4->irq_reload = 1;
         break;
 
-        // E000
+        // irq disable
         case 0xE000: 
         nlog("IRQ DISABLE $%04X", addr);
         mapper4->irq_enable = 0;
         mapper4->base.irq = 0;
         break;
 
-        // E001
+        // irq enable
         case 0xE001: 
         nlog("IRQ ENABLE $%04X", addr);
         mapper4->irq_enable = 1;
@@ -118,23 +122,25 @@ void mapper4_prg_write(struct Mapper4* mapper4, uint16_t addr, uint8_t data) {
     }
 
     // update prg cache
-    switch (mapper4->bank_select >> 6 & 0b1) {
-        case 0:
+    switch (mapper4->bank_select & 0b0100000) {
+        case 0b00000000:
         mapper4->prg_banks[0] = mapper4->regs[6];
-        mapper4->prg_banks[1] = mapper4->regs[7];
+        mapper4->prg_banks[1] = mapper4->regs[7]; // always
         mapper4->prg_banks[2] = mapper4->last_prg_bank - 1;
+        //mapper4->prg_banks[3] = mapper4->last_prg_bank;
         break;
 
-        case 1:
+        case 0b01000000:
         mapper4->prg_banks[0] = mapper4->last_prg_bank - 1;
-        mapper4->prg_banks[1] = mapper4->regs[7];
+        mapper4->prg_banks[1] = mapper4->regs[7]; // always
         mapper4->prg_banks[2] = mapper4->regs[6];
+        //mapper4->prg_banks[3] = mapper4->last_prg_bank;
         break;
     }
 
     // update chr cache
-    switch (mapper4->bank_select >> 7) {
-        case 0:
+    switch (mapper4->bank_select & 0b10000000) {
+        case 0b00000000:
         mapper4->chr_banks[0] = mapper4->regs[0] & 0xFE;
         mapper4->chr_banks[1] = mapper4->chr_banks[0] + 1;
         mapper4->chr_banks[2] = mapper4->regs[1] & 0xFE;
@@ -145,7 +151,7 @@ void mapper4_prg_write(struct Mapper4* mapper4, uint16_t addr, uint8_t data) {
         mapper4->chr_banks[7] = mapper4->regs[5];
         break;
 
-        case 1:
+        case 0b10000000:
         mapper4->chr_banks[0] = mapper4->regs[2];
         mapper4->chr_banks[1] = mapper4->regs[3];
         mapper4->chr_banks[2] = mapper4->regs[4];
@@ -161,9 +167,7 @@ void mapper4_prg_write(struct Mapper4* mapper4, uint16_t addr, uint8_t data) {
 uint8_t mapper4_chr_read(struct Mapper4* mapper4, uint16_t addr) {
     uint8_t current_a12 = (addr & 0b1 << 12) > 0;
     if  (mapper4->last_a12 == 0 && current_a12 == 1) {
-        // IRQ is clocked...
-        nlog("IRQ clocked q=%i:  %4x", mapper4->irq_counter, addr);
-        
+        //nlog("MMC3 IRQ Clocked %i", mapper4->irq_counter);
         if (mapper4->irq_reload || mapper4->irq_counter == 0) {
             mapper4->irq_reload = 0;
             mapper4->irq_counter = mapper4->irq_latch;
@@ -186,9 +190,7 @@ uint8_t mapper4_chr_read(struct Mapper4* mapper4, uint16_t addr) {
 void mapper4_chr_write(struct Mapper4* mapper4, uint16_t addr, uint8_t data) {
     uint8_t current_a12 = (addr & 0b1 << 12) > 0;
     if  (mapper4->last_a12 == 0 && current_a12 == 1) {
-        // IRQ is clocked...
-        //printf("IRQ clocked q=%i:  %4x\n", mapper4->irq_counter, addr);
-        
+        //nlog("MMC3 IRQ Clocked %i", mapper4->irq_counter);
         if (mapper4->irq_reload || mapper4->irq_counter == 0) {
             mapper4->irq_reload = 0;
             mapper4->irq_counter = mapper4->irq_latch;

@@ -20,6 +20,7 @@ uint8_t cpu_bus_read(struct Nes* nes, uint16_t addr) {
                 uint8_t out = nes->ppustatus;
                 nes->ppustatus &= 0x7F;
                 nes->ppulatch = 0;
+                //nes->nmi = 0;
                 return out;
             }
             // oamdata
@@ -32,10 +33,20 @@ uint8_t cpu_bus_read(struct Nes* nes, uint16_t addr) {
                     uint8_t out = nes->read_buffer;
                     nes->read_buffer = ppu_bus_read(nes, nes->ppuaddr);
                     nes->ppuaddr += (nes->ppuctrl & 0b0100) > 0 ? 32 : 1;
+
+                    // A hack to clock the MMC3
+                    //if (nes->cartridge->mapper == 4)
+                    //    cartridge_chr_read(nes->cartridge, nes->ppuaddr & 1 << 12);
+                    
                     return out;
                 } else {
                     uint8_t out = ppu_bus_read(nes, nes->ppuaddr);
                     nes->ppuaddr += (nes->ppuctrl & 0b0100) > 0 ? 32 : 1;
+
+                    // A hack to clock the MMC3
+                    //if (nes->cartridge->mapper == 4)
+                    //    cartridge_chr_read(nes->cartridge, nes->ppuaddr & 1 << 12);
+
                     return out;
                 }
             }
@@ -94,6 +105,9 @@ void cpu_bus_write(struct Nes* nes, uint16_t addr, uint8_t byte) {
         switch (0x2000 | (addr & 0b111)) {
             // ppuctrl
             case 0x2000: {
+                //if (nes->ppuctrl < 0x80 && byte >= 0x80 && nes->ppustatus >= 0x80) {
+                //    nes->nmi = 1;
+                //}
                 nes->ppuctrl = byte;
                 // micro
                 nes->ppuscroll &= 0b111001111111111;
@@ -103,6 +117,10 @@ void cpu_bus_write(struct Nes* nes, uint16_t addr, uint8_t byte) {
             // ppumask
             case 0x2001: {
                 nes->ppumask = byte;
+                return;
+            }
+            // ppustatus
+            case 0x2002: {
                 return;
             }
             // oamaddr
@@ -146,9 +164,9 @@ void cpu_bus_write(struct Nes* nes, uint16_t addr, uint8_t byte) {
                     nes->ppuscroll |= byte;
                     nes->ppuaddr = nes->ppuscroll;
 
-                    // ?
-                    if (nes->ppuscroll < 0x2000)
-                        cartridge_chr_write(nes->cartridge, nes->ppuaddr & 0x3FFF, byte);                   
+                    // A hack to clock the MMC3
+                    //if (nes->cartridge->mapper == 4)
+                    //    cartridge_chr_read(nes->cartridge, nes->ppuaddr & 1 << 12);
                 }
                 nes->ppulatch = !nes->ppulatch;
                 return;
@@ -157,6 +175,11 @@ void cpu_bus_write(struct Nes* nes, uint16_t addr, uint8_t byte) {
             case 0x2007: {
                 ppu_bus_write(nes, nes->ppuaddr, byte); 
                 nes->ppuaddr += ((nes->ppuctrl & 0b0100) > 0) * 31 + 1;
+
+                // A hack to clock the MMC3
+                //if (nes->cartridge->mapper == 4)
+                //    cartridge_chr_read(nes->cartridge, nes->ppuaddr & 1 << 12);
+                
                 return;
             }
             //

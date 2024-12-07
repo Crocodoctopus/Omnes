@@ -42,8 +42,8 @@ void init_nes(struct Nes* nes, struct Cartridge* cartridge) {
     memset(nes->palette, 0, 0x20);
     nes->cycle = 0;
     nes->ppuctrl.raw = 0;
-    nes->ppumask = 0;
-    nes->ppustatus = 0b00000000; // 1010_0000
+    nes->ppumask.raw = 0;
+    nes->ppustatus.raw = 0;
     nes->oamaddr = 0;
     nes->ppuscroll = 0;
     nes->ppuaddr = 0;

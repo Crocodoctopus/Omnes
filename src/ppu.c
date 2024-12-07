@@ -37,19 +37,6 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
     uint16_t dot = nes->cycle % 341;
     nes->cycle += 1;
 
-    // Extract a few useful flags (https://www.nesdev.org/wiki/PPU_registers)
-    /*
-    uint8_t ppuctrl_V = (nes->ppuctrl & 0b10000000) > 0; // enable NMI
-    uint8_t ppuctrl_H = (nes->ppuctrl & 0b00100000) > 0; // sprite height: 0 = 8x8; 1 = 8x16
-    uint8_t ppuctrl_B = (nes->ppuctrl & 0b00010000) > 0; // tile pattern table base: 0 = $0000; 1 = $1000
-    uint8_t ppuctrl_S = (nes->ppuctrl & 0b00001000) > 0; // sprite pattern table base: 0 = $0000; 1 = $1000
-    */
-    uint8_t ppumask_s = (nes->ppumask & 0b00010000) > 0; // sprite enabled
-    uint8_t ppumask_b = (nes->ppumask & 0b00001000) > 0; // background enabled
-    uint8_t ppumask_M = (nes->ppumask & 0b00000100) > 0; // show sprites in leftmost 8 pixels
-    uint8_t ppumask_m = (nes->ppumask & 0b00000010) > 0; // show background in leftmost 8 pixels
-    uint8_t ppumask_G = (nes->ppumask & 0b00000001) > 0; // grayscale mode: 0 = color; 1 = grayscale
-
     uint8_t prerender_scanline = scanline == 261;
     uint8_t visible_scanline = scanline <= 239;
 
@@ -60,7 +47,7 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
     if (scanline == 241 && dot == 1) {
         *vblank = 1;
         nes->nmi = nes->ppuctrl.V;
-        nes->ppustatus |= 0x80; // set vblank flag
+        nes->ppustatus.V = 1; // set vblank flag
         return;
     }
 
@@ -71,17 +58,17 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
     if (nes->set_szh > 0) {
         nes->set_szh -= 1;
         if (nes->set_szh == 0) {
-            nes->ppustatus |= 0b01000000;
+            nes->ppustatus.S = 1;
         }
     }
 
     // clear ppu status on SL 261 D 1
     if (scanline == 261 && dot == 1) {
-        nes->ppustatus = 0;
+        nes->ppustatus.raw = 0;
     }
 
     // Range: [0, 239] visible scanlines (and scanline 261*)
-    if ((prerender_scanline || visible_scanline) && (ppumask_b || ppumask_s)) {        
+    if ((prerender_scanline || visible_scanline) && (nes->ppumask.b || nes->ppumask.s)) {        
         /////////////////////////
         // Background pixel output operation
         uint8_t bg_pattern = 0; // 2 bit shifter output
@@ -103,7 +90,7 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
             // Pixel output
             if (dot <= 256 && !prerender_scanline) {
                 bg_attribute = nes->bg_hi_at_shifter >> (14 - fine_x) & 0b10 | nes->bg_lo_at_shifter >> (15 - fine_x) & 1;
-                bg_pattern = ppumask_b 
+                bg_pattern = nes->ppumask.b 
                     ? nes->bg_hi_pt_shifter >> (14 - fine_x) & 0b10 | nes->bg_lo_pt_shifter >> (15 - fine_x) & 1
                     : 0b00; // if bg rendering is disabled, force pattern to transparent
             }
@@ -165,7 +152,7 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
                         nes->spr_hi_pt_shifters[spr] <<= 1;
         
                         uint8_t attribute = nes->spr_attributes[spr] & 0b11;
-                        uint8_t pattern = ppumask_s 
+                        uint8_t pattern = nes->ppumask.s 
                             ? hi << 1 | lo
                             : 0b00; // if fg rendering is disabled, force pattern to transparent
     
@@ -269,14 +256,14 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
         // Final pixel output
         if (incl(1, dot, 256) && !prerender_scanline) {
             uint8_t final = 0;
-            if (incl(1, dot, 9) && !ppumask_m) bg_pattern = 0;
-            if (incl(1, dot, 9) && !ppumask_M) fg_pattern = 0;
+            if (incl(1, dot, 9) && !nes->ppumask.m) bg_pattern = 0;
+            if (incl(1, dot, 9) && !nes->ppumask.M) fg_pattern = 0;
             // if (bg_pattern == 0 && fg_pattern == 0); // no op
             if (bg_pattern == 0 && fg_pattern != 0) final = 0x10 | fg_attribute << 2 | fg_pattern;
             if (bg_pattern != 0 && fg_pattern == 0) final = bg_attribute << 2 | bg_pattern;
             if (bg_pattern != 0 && fg_pattern != 0 && fg_priority == 0) final = 0x10 | fg_attribute << 2 | fg_pattern;
             if (bg_pattern != 0 && fg_pattern != 0 && fg_priority != 0) final = bg_attribute << 2 | bg_pattern;
-            uint8_t grayscale_mask = ppumask_G ? 0x30 : 0xFF;
+            uint8_t grayscale_mask = nes->ppumask.g ? 0x30 : 0xFF;
             pixels[scanline * 256 + (dot - 1)] = ppu_bus_read(nes, 0x3F00 | final) & grayscale_mask;
         }
     }

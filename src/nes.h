@@ -48,10 +48,10 @@ struct Nes {
     uint8_t oam[0x100];
     uint8_t palette[0x20];
     uint32_t cycle;
-    // Mapped PPU registers
+    // Mapped PPU registers (https://www.nesdev.org/wiki/PPU_registers)
     union PpuCtrl ppuctrl; // $2000
-    uint8_t ppumask; // $2001
-    uint8_t ppustatus; // $2002
+    union PpuMask ppumask; // $2001
+    union PpuStatus ppustatus; // $2002
     uint8_t oamaddr; // $2003
     uint16_t ppuscroll; // $2005
     uint16_t ppuaddr; // $2006

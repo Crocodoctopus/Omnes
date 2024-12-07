@@ -17,10 +17,10 @@ uint8_t cpu_bus_read(struct Nes* nes, uint16_t addr) {
         switch (0x2000 | (addr & 0b111)) {
             // ppustatus
             case 0x2002: {
-                uint8_t out = nes->ppustatus;
-                nes->ppustatus &= 0x7F;
+                uint8_t out = nes->ppustatus.raw;
+                nes->ppustatus.V = 0;
                 nes->ppulatch = 0;
-                //nes->nmi = 0;
+                //nes->nmi = 0; ?
                 return out;
             }
             // oamdata
@@ -116,7 +116,7 @@ void cpu_bus_write(struct Nes* nes, uint16_t addr, uint8_t byte) {
             }
             // ppumask
             case 0x2001: {
-                nes->ppumask = byte;
+                nes->ppumask.raw = byte;
                 return;
             }
             // ppustatus

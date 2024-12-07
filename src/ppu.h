@@ -15,6 +15,30 @@ union PpuCtrl {
     u8 raw;
 };
 
+union PpuMask {
+    struct __attribute__((packed)) {
+        u8 g: 1; // Greyscale mode (0 = color; 1 = greyscale)
+        u8 m: 1; // Show background in left most 8 screen pixels
+        u8 M: 1; // Show sprites in left most 8 screen pixels
+        u8 b: 1; // Enable background rendering
+        u8 s: 1; // Enable sprite rendering
+        u8 R_unimpl: 1;
+        u8 G_unimpl: 1;
+        u8 B_unimpl: 1;
+    };
+    u8 raw;
+};
+
+union PpuStatus {
+    struct __attribute__((packed)) {
+      u8 unused: 5;
+      u8 O: 1; // Sprite overflow flag
+      u8 S: 1; // Sprite 0 hit flag
+      u8 V: 1; // Vblank flag; set on vblank, cleared on read.
+    };
+    u8 raw;
+};
+
 struct Nes;
 
 // NES component step functions:

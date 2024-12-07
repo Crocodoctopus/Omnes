@@ -31,13 +31,31 @@ union PpuMask {
 
 union PpuStatus {
     struct __attribute__((packed)) {
-      u8 unused: 5;
-      u8 O: 1; // Sprite overflow flag
-      u8 S: 1; // Sprite 0 hit flag
-      u8 V: 1; // Vblank flag; set on vblank, cleared on read.
+        u8 unused: 5;
+        u8 O: 1; // Sprite overflow flag
+        u8 S: 1; // Sprite 0 hit flag
+        u8 V: 1; // Vblank flag; set on vblank, cleared on read.
     };
     u8 raw;
 };
+
+/*
+union PpuVramAddress {
+    struct __attribute__((packed)) {
+        u8 XXXX: 4;
+        u8 YYYYY: 5;
+        u8 NN: 2;
+        u8 yyy: 3;
+        u8 unused: 1;
+        u8 pad: 1;
+    } scroll;
+    struct __attribute__((packed)) {
+        u16 raw: 14;
+        u8 unused: 1;
+        u8 pad: 1;
+    } address;
+};
+*/
 
 struct Nes;
 

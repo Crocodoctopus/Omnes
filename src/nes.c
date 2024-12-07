@@ -16,6 +16,7 @@ void init_nes(struct Nes* nes, struct Cartridge* cartridge) {
     nes->input2 = 0;
     nes->joy1 = 0;
     nes->joy2 = 0;
+    nes->controller_strobe = 0;
     nes->oam_delay = 0;
 
     // https://wiki.nesdev.org/w/index.php/CPU_power_up_state

@@ -64,14 +64,14 @@ uint8_t cpu_bus_read(struct Nes* nes, uint16_t addr) {
         switch (addr) {
             // Joypad 1
             case 0x4016: {
-                uint8_t out = nes->joy1 & 0x01;
-                nes->joy1 >>= 1;
+                uint8_t out = nes->joy1 & 0b1;
+                if (nes->controller_strobe % 2 == 0) nes->joy1 >>= 1;
                 return out;
             }
             // joypad 2
             case 0x4017: {
-                uint8_t out = nes->joy2 & 0x01;
-                nes->joy2 >>= 1;
+                uint8_t out = nes->joy2 & 0b1;
+                if (!nes->controller_strobe % 2 == 0) nes->joy2 >>= 1;
                 return out;
             }
             // do not abort on unhandled APU
@@ -197,18 +197,18 @@ void cpu_bus_write(struct Nes* nes, uint16_t addr, uint8_t byte) {
         switch (addr) {
             // input polling
             case 0x4016: {
-                // write 1 or 0?
-                if (byte == 1) {
+                nes->controller_strobe = byte;
+                if (nes->controller_strobe) {
                     nes->joy1 = nes->input1;
                     nes->joy2 = nes->input2;
-                }
+                }    
                 return;
             };
             // OAM
             case 0x4014: {
                 nes->oam_delay = 514;
                 uint8_t i = 0;
-                do nes->oam[(uint8_t)(i + nes->oamaddr)] = cpu_bus_read(nes, byte << 8 | i);
+                do cpu_bus_write(nes, 0x2004, cpu_bus_read(nes, byte << 8 | i));
                 while (++i != 0);
                 return;
             };

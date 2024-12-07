@@ -23,6 +23,7 @@ struct Nes {
     uint8_t input2;
     uint8_t joy1;
     uint8_t joy2;
+    uint8_t controller_strobe;
     uint16_t oam_delay;
 
     // CPU

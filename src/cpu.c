@@ -233,8 +233,7 @@ micro_instr** get_micro(uint8_t op) {
 }
 
 void step_cpu(struct Nes* nes) {
-    (*(nes->instr_ptr++))(nes);
-
+    (*nes->instr_ptr++)(nes);
 }
 
 // A := A LSR 0; SETF(NZC); IR := *PC; PC += 1; END 

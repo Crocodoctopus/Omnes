@@ -144,14 +144,25 @@ int main(int argc, char** argv) {
                 ((uint8_t*)screen->pixels)[i * 4 + 1] = lookup[ppu_output[i] * 3 + 1];
                 ((uint8_t*)screen->pixels)[i * 4 + 0] = lookup[ppu_output[i] * 3 + 2];
 
-            }   
+            }
+
+            // Debug sprites.
+            /*uint8_t sprite_output[SCREEN_WIDTH * SCREEN_HEIGHT] = { 0 };
+            draw_oam_sprites(&nes, sprite_output);
+            for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) {
+                ((uint8_t*)screen->pixels)[i * 4 + 2] = lookup[sprite_output[i] * 3 + 0];
+                ((uint8_t*)screen->pixels)[i * 4 + 1] = lookup[sprite_output[i] * 3 + 1];
+                ((uint8_t*)screen->pixels)[i * 4 + 0] = lookup[sprite_output[i] * 3 + 2];
+
+            } */
+            
             SDL_UpdateWindowSurface(game_window); 
 
             // Sleep for (16ms - time_taken).
             int end = SDL_GetTicks();
             //nlog("%i", end - start);
             uint8_t wait = end - start;
-            SDL_Delay(wait < 16 ? 16 - end + start : wait);
+            //SDL_Delay(wait < 16 ? 16 - end + start : wait);
         };
     }
 

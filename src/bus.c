@@ -101,8 +101,7 @@ void cpu_bus_write(struct Nes* nes, uint16_t addr, uint8_t byte) {
 
     // Range [0x2000, 0x3FFF]: PPU registers.
     if (addr <= 0x3FFF) {
-        // TODO: most of these are probably wrong
-        switch (0x2000 | (addr & 0b111)) {
+        switch (addr & 0b0010000000000111) {
             // ppuctrl
             case 0x2000: {
                 //if (nes->ppuctrl < 0x80 && byte >= 0x80 && nes->ppustatus >= 0x80) {
@@ -206,7 +205,7 @@ void cpu_bus_write(struct Nes* nes, uint16_t addr, uint8_t byte) {
             };
             // OAM
             case 0x4014: {
-                nes->oam_delay = 514;
+                nes->oam_delay = 513;
                 uint8_t i = 0;
                 do cpu_bus_write(nes, 0x2004, cpu_bus_read(nes, byte << 8 | i));
                 while (++i != 0);

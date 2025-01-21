@@ -195,7 +195,7 @@ void draw_oam_sprites(struct Nes* nes, uint8_t* pixels) {
             ? (byte1 & 0x01) << 12 // 8x16 mode
             : nes->ppuctrl.S 
                 ? 0x1000
-                : 0x1000l; // 8x8 mode
+                : 0x0000; // 8x8 mode
         uint16_t pattern_table_base = pattern_table_page | pattern_table_index;
 
         for (uint8_t spr = nes->ppuctrl.H; spr != 255; spr--) {
@@ -226,7 +226,8 @@ void draw_oam_sprites(struct Nes* nes, uint8_t* pixels) {
     
                     //
 
-                    pixels[index] = spr_palette[palette_id][pixel];
+                    if (pixel_x < 256 && pixel_y < 244)
+                        pixels[index] = spr_palette[palette_id][pixel];
                 }
             }
         }

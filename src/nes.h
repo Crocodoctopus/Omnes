@@ -57,6 +57,7 @@ struct Nes {
     uint16_t ppuscroll; // $2005
     uint16_t ppuaddr; // $2006
     // Interal PPU registers
+    uint8_t parity;
     uint8_t read_buffer;
     uint8_t set_szh;
     uint8_t fine_x;

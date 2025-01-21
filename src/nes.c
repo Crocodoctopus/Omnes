@@ -51,6 +51,7 @@ void init_nes(struct Nes* nes, struct Cartridge* cartridge) {
     nes->read_buffer = 0;
     nes->set_szh = 0;
     // micro
+    nes->parity = 0;
     nes->fine_x = 0;
     nes->ppulatch = 0;
     nes->nt_latch = 0;

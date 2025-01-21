@@ -32,7 +32,10 @@ void ppu_evaluate_sprites(struct Nes* nes, uint16_t scanline) {
 
 void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
     // Calculate scanline/dot and advance cycle counter
-    if (nes->cycle >= 89342) nes->cycle = 0;
+    if (nes->cycle == 89342) {
+        nes->parity ^= 0b1; 
+        nes->cycle = 0;
+    }
     uint16_t scanline = nes->cycle / 341;
     uint16_t dot = nes->cycle % 341;
     nes->cycle += 1;
@@ -41,6 +44,7 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
     uint8_t visible_scanline = scanline <= 239;
 
     // Dot 0 is idle.
+    if (scanline == 339 && dot == 0 && nes->parity && (nes->ppumask.b || nes->ppumask.s)) dot += 1;
     if (dot == 0) return;
 
     //  Vblank begins on SL 241, D 1
@@ -63,7 +67,7 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
     }
 
     // clear ppu status on SL 261 D 1
-    if (scanline == 261 && dot == 1) {
+    if (prerender_scanline && dot == 1) {
         nes->ppustatus.raw = 0;
     }
 

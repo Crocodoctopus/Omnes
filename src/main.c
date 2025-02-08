@@ -61,16 +61,20 @@ int main(int argc, char** argv) {
     // Create main SDL window.
     SDL_Window* game_window = SDL_CreateWindow("NES Emu", 1920/2, 1080/2, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
     assert(game_window);
+
+    // Create debug windows.
     SDL_Window* nametable_window = SDL_CreateWindow("NES Emu Nametable", 1920/2 + SCREEN_WIDTH, 1080/2, 2 * SCREEN_WIDTH, 2 * SCREEN_HEIGHT, 0);
     assert(nametable_window);
     SDL_Window* pattern_table_window = SDL_CreateWindow("NES Emu Pattern Table", 1920/2, 1080/2 + SCREEN_HEIGHT + 24, TILE_SIZE * 32, TILE_SIZE * 16, 0);
     assert(pattern_table_window);
+    SDL_Window* sprite_window = SDL_CreateWindow("NES Emu PPU OAM", 1920/2, 1080/2 + SCREEN_HEIGHT + 24, 64 * 2, 64 * 2, 0);
+    assert(sprite_window);
 
     // Declare space for PPU output, in PPU colors.
     uint8_t ppu_output[SCREEN_WIDTH * SCREEN_HEIGHT];
 
     int debug_scanline = 240;
-    int debug_dot = 0;
+    int debug_dot = 5;
     int debug_cycle = debug_scanline * 340 + debug_dot;
 
     // The main game loop. Runs at 60 Hz.
@@ -104,6 +108,18 @@ int main(int argc, char** argv) {
                 ((uint8_t*)s2->pixels)[i * 4 + 0] = lookup[pattern_table_output[i] * 3 + 2];
             }
             SDL_UpdateWindowSurface(pattern_table_window);
+            
+            // Debug sprites.
+            uint8_t sprite_output[64 * 64 * 4];
+            memset(sprite_output, 37, 64 * 64 * 4);
+            draw_oam_sprites(&nes, sprite_output);
+            SDL_Surface* s3 = SDL_GetWindowSurface(sprite_window);
+            for (int i = 0; i < 64 * 64 * 4; i++) {
+                ((uint8_t*)s3->pixels)[i * 4 + 2] = lookup[sprite_output[i] * 3 + 0];
+                ((uint8_t*)s3->pixels)[i * 4 + 1] = lookup[sprite_output[i] * 3 + 1];
+                ((uint8_t*)s3->pixels)[i * 4 + 0] = lookup[sprite_output[i] * 3 + 2];
+            }
+            SDL_UpdateWindowSurface(sprite_window);
         }
 
         // Render screen info on vblank cycle.
@@ -143,18 +159,7 @@ int main(int argc, char** argv) {
                 ((uint8_t*)screen->pixels)[i * 4 + 2] = lookup[ppu_output[i] * 3 + 0];
                 ((uint8_t*)screen->pixels)[i * 4 + 1] = lookup[ppu_output[i] * 3 + 1];
                 ((uint8_t*)screen->pixels)[i * 4 + 0] = lookup[ppu_output[i] * 3 + 2];
-
             }
-
-            // Debug sprites.
-            /*uint8_t sprite_output[SCREEN_WIDTH * SCREEN_HEIGHT] = { 0 };
-            draw_oam_sprites(&nes, sprite_output);
-            for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) {
-                ((uint8_t*)screen->pixels)[i * 4 + 2] = lookup[sprite_output[i] * 3 + 0];
-                ((uint8_t*)screen->pixels)[i * 4 + 1] = lookup[sprite_output[i] * 3 + 1];
-                ((uint8_t*)screen->pixels)[i * 4 + 0] = lookup[sprite_output[i] * 3 + 2];
-
-            } */
             
             SDL_UpdateWindowSurface(game_window); 
 
@@ -171,6 +176,7 @@ exit:
     settings_write_to_file(&settings, "settings.conf");
 
     // Free SDL windows.
+    SDL_DestroyWindow(sprite_window);
     SDL_DestroyWindow(game_window);
     SDL_DestroyWindow(nametable_window);
     SDL_DestroyWindow(pattern_table_window);

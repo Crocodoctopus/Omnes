@@ -142,11 +142,8 @@ void draw_ppu_pattern_tables(struct Nes* nes, uint8_t pixels[512 * TILE_SIZE * T
    return v;
 }*/
 
-void draw_oam_sprites(struct Nes* nes, uint8_t* pixels) {
+void draw_oam_sprites(struct Nes* nes, uint8_t pixels[64 * 64 * 4]) {
     // constants
-    uint16_t nametable_width = 32; // in tiles
-    uint16_t nametable_height = 30; // in tiles
-    uint16_t tile_size = 8; // in pixels
     uint16_t sprite_size = 8; // in pixels
 
     uint8_t spr_palette[4][4];
@@ -167,22 +164,16 @@ void draw_oam_sprites(struct Nes* nes, uint8_t* pixels) {
     spr_palette[3][2] = ppu_bus_read(nes, 0x3F1E);
     spr_palette[3][3] = ppu_bus_read(nes, 0x3F1F);
 
-    // sprites
-    for (uint8_t sprite = 0; sprite < 64; sprite++) {
-        // Sprite y position.
-        uint8_t byte0 = nes->oam[sprite * 4 + 0];
+    uint8_t i = nes->oamaddr;
+    do {
+        uint8_t base_x = (i >> 2) & 0b00000111;
+        uint8_t base_y = (i >> 5) & 0b00000111;
+        
         // Sprite index information.
-        uint8_t byte1 = nes->oam[sprite * 4 + 1];
+        uint8_t byte1 = nes->oam[i + 1];
         // Sprite attribute information.
-        uint8_t byte2 = nes->oam[sprite * 4 + 2];
-        // Sprite x position.
-        uint8_t byte3 = nes->oam[sprite * 4 + 3];
-
-        if (byte0 >= 0xEF || byte3 >= 0xF9) {
-            continue;
-        }
-
-        //
+        uint8_t byte2 = nes->oam[i + 2];
+        
         uint8_t palette_id = byte2 & 0b11;
         uint8_t flip_v = (byte2 & 0x80) > 0;
         uint8_t flip_h = (byte2 & 0x40) > 0;
@@ -198,40 +189,36 @@ void draw_oam_sprites(struct Nes* nes, uint8_t* pixels) {
                 : 0x0000; // 8x8 mode
         uint16_t pattern_table_base = pattern_table_page | pattern_table_index;
 
-        for (uint8_t spr = nes->ppuctrl.H; spr != 255; spr--) {
-            for (uint8_t bit_plane = 0; bit_plane < sprite_size; bit_plane++) {
+        for (uint8_t bit_plane = 0; bit_plane < sprite_size; bit_plane++) {
+            //
+            uint8_t true_bit_plane = flip_v ? 7 - bit_plane : bit_plane;
+            uint8_t low_bits = ppu_bus_read(nes, pattern_table_base | i << 4 | true_bit_plane); // low bits for 8 pixels
+            uint8_t high_bits = ppu_bus_read(nes, pattern_table_base | i << 4 | sprite_size | true_bit_plane); // high bits for 8 pixels
+
+            /*if (flip_h) {
+                low_bits = reverse_u8(low_bits);
+                high_bits = reverse_u8(high_bits);
+            }*/
+
+            //
+            for (uint8_t relx = 0; relx < 8; relx++) {
                 //
-                uint8_t true_bit_plane = flip_v ? 7 - bit_plane : bit_plane;
-                uint8_t low_bits = ppu_bus_read(nes, pattern_table_base | spr << 4 | true_bit_plane); // low bits for 8 pixels
-                uint8_t high_bits = ppu_bus_read(nes, pattern_table_base | spr << 4 | sprite_size | true_bit_plane); // high bits for 8 pixels
-
-                /*if (flip_h) {
-                    low_bits = reverse_u8(low_bits);
-                    high_bits = reverse_u8(high_bits);
-                }*/
+                uint8_t pixel = high_bits % 2 << 1 | low_bits % 2;
+                low_bits >>= 1;
+                high_bits >>= 1;
 
                 //
-                for (uint8_t pixel_index = 0; pixel_index < sprite_size; pixel_index++) {
-                    //
-                    uint8_t pixel = high_bits % 2 << 1 | low_bits % 2;
-                    low_bits >>= 1;
-                    high_bits >>= 1;
-                    if (pixel == 0) continue;
-    
-                    //
-                    uint16_t pixel_x = byte3 + sprite_size - 1 - pixel_index;
-                    uint16_t pixel_y = 1 + byte0 + (flip_v ? -spr + 1 : spr) * 8 + bit_plane;
-                    if (pixel_x >= 256 || pixel_y >= 240) continue;
-                    uint32_t index = pixel_x + pixel_y * nametable_width * tile_size;
-    
-                    //
-
-                    if (pixel_x < 256 && pixel_y < 244)
-                        pixels[index] = spr_palette[palette_id][pixel];
-                }
+                assert(base_x < 8);
+                assert(base_y < 8);
+                uint32_t index = (base_x * 8 + relx) + (base_y * 8 + true_bit_plane) * 64 * 2;
+                assert(index < 64 * 64 * 4);
+                pixels[index] = spr_palette[palette_id][pixel];
+                //pixels[64 *64 - 1] = 3;
             }
         }
-    }
+        
+        i += 1;
+    } while (i != nes->oamaddr);
 }
 
 // opcode ID to name lookup table

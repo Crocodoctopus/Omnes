@@ -43,5 +43,5 @@ void mapper0_prg_write(struct Mapper0* mapper0, uint16_t addr, uint8_t data) {
 }
 
 void mapper0_chr_write(struct Mapper0* mapper0, uint16_t addr, uint8_t data) {
-    //mapper0->chr_rom[addr] = data;
+    mapper0->chr_rom[addr] = data;
 }

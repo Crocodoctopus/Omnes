@@ -43,8 +43,10 @@ void step_ppu(struct Nes* nes, uint8_t* pixels, uint8_t* vblank) {
     uint8_t prerender_scanline = scanline == 261;
     uint8_t visible_scanline = scanline <= 239;
 
+    // This is kind of hacky.
+    if (scanline == 261 && dot == 339 && nes->parity && (nes->ppumask.b || nes->ppumask.s)) nes->cycle += 1;
+
     // Dot 0 is idle.
-    if (scanline == 339 && dot == 0 && nes->parity && (nes->ppumask.b || nes->ppumask.s)) dot += 1;
     if (dot == 0) return;
 
     //  Vblank begins on SL 241, D 1

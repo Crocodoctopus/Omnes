@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
     uint8_t ppu_output[SCREEN_WIDTH * SCREEN_HEIGHT];
 
     int debug_scanline = 240;
-    int debug_dot = 5;
+    int debug_dot = 0;
     int debug_cycle = debug_scanline * 340 + debug_dot;
 
     // The main game loop. Runs at 60 Hz.
@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
         uint8_t vblank = step_nes(&nes, ppu_output);
 
         // Output debug info on the debug cycle.
-        if (debug_cycle == nes.cycle) {
+        if (debug_cycle >= nes.cycle && debug_cycle <= nes.cycle + 2) {
             // Render nametable.
             uint8_t nametable_output[SCREEN_WIDTH * SCREEN_HEIGHT * 2 * 2];
             draw_ppu_nametables(&nes, nametable_output);
@@ -167,7 +167,8 @@ int main(int argc, char** argv) {
             int end = SDL_GetTicks();
             //nlog("%i", end - start);
             uint8_t wait = end - start;
-            //SDL_Delay(wait < 16 ? 16 - end + start : wait);
+            if (wait < 0x80)
+                SDL_Delay(wait);
         };
     }
 
@@ -179,7 +180,7 @@ exit:
     SDL_DestroyWindow(sprite_window);
     SDL_DestroyWindow(game_window);
     SDL_DestroyWindow(nametable_window);
-    SDL_DestroyWindow(pattern_table_window);
+    //SDL_DestroyWindow(pattern_table_window);
 
     // Free Nes object.
     free_nes(&nes);

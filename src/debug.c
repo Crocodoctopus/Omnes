@@ -180,28 +180,30 @@ void draw_oam_sprites(struct Nes* nes, uint8_t pixels[64 * 64 * 4]) {
 
         // Calculate pattern table base.
         uint16_t pattern_table_index = nes->ppuctrl.H 
-            ? (byte1 & 0xFE) << 4 // 8x16 mode
-            : byte1 << 4; // 8x8 mode
+            ? (byte1 & 0xFE) // 8x16 mode
+            : byte1; // 8x8 mode
         uint16_t pattern_table_page = nes->ppuctrl.H
-            ? (byte1 & 0x01) << 12 // 8x16 mode
+            ? (byte1 & 0x01)  // 8x16 mode
+                ? 0x1000
+                : 0x0000
             : nes->ppuctrl.S 
                 ? 0x1000
                 : 0x0000; // 8x8 mode
-        uint16_t pattern_table_base = pattern_table_page | pattern_table_index;
+        uint16_t pattern_table_base = pattern_table_page | pattern_table_index << 4;
 
         for (uint8_t bit_plane = 0; bit_plane < sprite_size; bit_plane++) {
             //
             uint8_t true_bit_plane = flip_v ? 7 - bit_plane : bit_plane;
-            uint8_t low_bits = ppu_bus_read(nes, pattern_table_base | i << 4 | true_bit_plane); // low bits for 8 pixels
-            uint8_t high_bits = ppu_bus_read(nes, pattern_table_base | i << 4 | sprite_size | true_bit_plane); // high bits for 8 pixels
+            uint8_t low_bits = ppu_bus_read(nes, pattern_table_base | true_bit_plane); // low bits for 8 pixels
+            uint8_t high_bits = ppu_bus_read(nes, pattern_table_base | 0b1000 | true_bit_plane); // high bits for 8 pixels
 
-            /*if (flip_h) {
-                low_bits = reverse_u8(low_bits);
+            if (!flip_h) {
+                low_bits =  reverse_u8(low_bits);
                 high_bits = reverse_u8(high_bits);
-            }*/
+            }
 
             //
-            for (uint8_t relx = 0; relx < 8; relx++) {
+            for (uint8_t rel_x = 0; rel_x < 8; rel_x++) {
                 //
                 uint8_t pixel = high_bits % 2 << 1 | low_bits % 2;
                 low_bits >>= 1;
@@ -210,14 +212,18 @@ void draw_oam_sprites(struct Nes* nes, uint8_t pixels[64 * 64 * 4]) {
                 //
                 assert(base_x < 8);
                 assert(base_y < 8);
-                uint32_t index = (base_x * 8 + relx) + (base_y * 8 + true_bit_plane) * 64 * 2;
-                assert(index < 64 * 64 * 4);
-                pixels[index] = spr_palette[palette_id][pixel];
+                uint32_t x = base_x * sprite_size + rel_x;
+                uint32_t y = base_y * sprite_size + bit_plane;
+                uint32_t pixel_index = x * 2 + y * 2 * 64 * 2;
+                pixels[pixel_index] = 
+                pixels[pixel_index + 1] = 
+                pixels[pixel_index + 128] = 
+                pixels[pixel_index + 129] = spr_palette[palette_id][pixel];
                 //pixels[64 *64 - 1] = 3;
             }
         }
         
-        i += 1;
+        i += 4;
     } while (i != nes->oamaddr);
 }
 

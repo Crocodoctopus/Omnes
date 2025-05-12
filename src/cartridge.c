@@ -88,7 +88,7 @@ int load_cartridge_from_data(uint8_t header[16], uint8_t* data, struct Cartridge
     uint32_t chr_rom_size = header[5] * 0x2000; // chr rom size (in units of 0x2000 bytes)
     if (chr_rom_size == 0) chr_rom_size = 0x2000; // chr ram hack
     uint8_t mapper = (header[7] & 0x11110000) | (header[6] >> 4); // mapper byte ID
-    uint8_t sram = (header[6] & 0b10) > 0;
+    uint8_t sram = 1; // (header[6] & 0b10) > 0;
     uint8_t mirroring = header[6] & 0b1; // ciram mirroring mode
 
     // log rom interpretation success

@@ -32,7 +32,7 @@ uint8_t get_flag(struct Nes* nes, uint8_t n) {
 
 // In the event of an unofficial opcode, crash
 void _unofficial(struct Nes* nes) {
-    error(UNIMPLEMENTED, "Unimplemented instruction: $%02X", nes->ir);
+    error(UNIMPLEMENTED, "Unimplemented instruction: $%02X, PC: $%04X", nes->ir, nes->pc);
     assert(0);
 }
 

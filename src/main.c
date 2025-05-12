@@ -165,8 +165,8 @@ int main(int argc, char** argv) {
 
             // Sleep for (16ms - time_taken).
             int end = SDL_GetTicks();
-            //nlog("%i", end - start);
-            uint8_t wait = end - start;
+            uint8_t wait = 13 - end + start;
+            nlog("%i", wait);
             if (wait < 0x80)
                 SDL_Delay(wait);
         };
